@@ -1,0 +1,411 @@
+---
+title: "Project: High Dimension Exam HDDA"
+output:
+  html_document:
+    df_print: paged
+  colortheme: dolphin
+  df_print: kable
+  fonttheme: structurebold
+  beamer_presentation:
+    colortheme: beaver
+    incremental: yes
+    keep_tex: yes
+    theme: Montpellier
+  ioslides_presentation: default
+  keep_tex: yes
+  pdf_document: default
+  slidy_presentation: default
+  smaller: yes
+  theme: AnnArbor
+  widescreen: yes
+---
+
+## 1) Introduction
+
+This project analyzes student behavior data using descriptive statistics, correlation analysis, Principal Component Analysis (PCA), and regression modeling. The aim is to understand the relationships between phone usage, social network time, happiness, walking distance, and Instagram ratio.
+
+
+##2. Dataset Description
+
+The dataset contains 5 quantitative variables and:
+
+**Phone**: minutes per day on phone.
+
+**SocialNetworks**: minutes per day on social networks.
+
+**Happiness**: score from 1 to 10.
+
+**Walk**: kilometers walked per day.
+
+**InstagramRatio**: ratio of followers to following.
+
+# Import libraries
+
+```{r setup, include=FALSE}
+
+library(FactoMineR)
+library(factoextra)
+library(corrplot)
+library(ggplot2)
+library(dplyr)
+```
+
+We need these libraries to make plots, analyze correlations, and clean the dataset.
+
+# Partie II-1 : Importation des données et ACP
+
+## Etape 1: Importation et description des données
+```{r}
+dataset <- read.csv(file = "HDDAdataexam26.csv",
+                    header = TRUE, sep = ";",  dec = ",")
+dataset
+```
+
+```{r}
+# Structure des données
+str(dataset)
+
+# Résumé statistique
+summary(dataset)
+```
+**Interprétation:**
+-The dataset containt only the quantitive variable
+
+- **Phone** :Most students use phone between 10 and 180 minutes. One extreme value = 1440 minutes (24h).
+
+- **SocialNetworks** : Similar to phone time
+- **Happiness** :  Most scores are between 7 and 8.
+- **Walk** : Some students walk up to 20 km (very active).
+- **InstagramRatio** : One extreme value = 51 (many followers compared to following).
+
+
+#Step 3 – Check missing values
+We check if there are missing values before PCA.
+
+```{r}
+# Nombre de valeurs manquantes par variable
+Nombre <- colSums(is.na(dataset))
+
+# Proportion de valeurs manquantes
+Proportion <- Nombre / nrow(dataset)
+
+# Tableau final
+table_na <- data.frame(Nombre, Proportion)
+table_na
+
+
+```
+
+##Interpretation:  
+No missing values,we can continue PCA
+
+#Step 4 – Remove duplicates
+Duplicates can bias analysis. We remove them.
+```{r}
+# Afficher toutes les lignes dupliquées (première + répétitions)
+dataset[duplicated(dataset) | duplicated(dataset, fromLast = TRUE), ]
+```
+
+```{r}
+# Compter combien de fois chaque ligne apparaît
+table(duplicated(dataset))
+
+# Supprimer les doublons si nécessaire
+dataset<- dataset[!duplicated(dataset), ]
+
+# Afficher toutes les lignes dupliquées (première + répétitions)
+dataset[duplicated(dataset) | duplicated(dataset, fromLast = TRUE), ]
+
+
+
+```
+
+
+### Step 5 – Boxplots of variables
+Boxplots show distribution and extreme values.
+
+```{r}
+# Afficher 5 graphiques sur 1 colonne ou 5 colonnes
+par(mfrow = c(1,5))  # 1 ligne, 5 colonnes
+
+# Boxplots
+boxplot(dataset$Phone, main = "Phone", col = "lightblue", ylab = "Minutes")
+boxplot(dataset$SocialNetworks, main = "SocialNetworks", col = "pink", ylab = "Minutes")
+boxplot(dataset$Happiness, main = "Happiness", col = "lightgreen", ylab = "Score")
+boxplot(dataset$Walk, main = "Walk", col = "orange", ylab = "Km")
+boxplot(dataset$InstagramRatio, main = "InstagramRatio", col = "purple", ylab = "Ratio")
+
+par(mfrow = c(1,1))
+
+```
+# Interpretation:
+We see outliers in Phone and InstagramRatio.
+
+
+## Step 6 – Center and reduce data
+When we do PCA, the data must be centered and reduced.
+
+- Centering means subtracting the mean of each variable. After this, the mean of each variable = 0.
+- Reducing (standardizing) means dividing by the standard deviation. After this, the variance of each variable = 1.
+- we use PCA directly on raw data, variables with large numerical values (like Phone minutes or InstagramRatio) will dominate the analysis. The PCA would mainly reflect those variables, and the others would be almost ignored
+
+- PCA requires all variables to have the same weight
+
+```{r}
+# Centrer et réduire les données
+scale_center_dataset <- scale(dataset,center = TRUE,scale=TRUE)
+
+head(scale_center_dataset)
+
+```
+#Step 7 – Correlation matrix
+We check relationships between variables.
+
+```{r}
+# Calculer la matrice de corrélation
+matrice_correlation <- cor(scale_center_dataset)
+
+matrice_correlation
+# Corrplot avec légende propreD
+corrplot(matrice_correlation,
+         method = "color",
+         type = "upper",         
+         order = "hclust",        
+         tl.col = "black",        
+         tl.srt = 45,             
+         addCoef.col = "black",   
+         number.cex = 0.8,        
+         addCoefasPercent = TRUE, 
+         cl.pos = "r",            
+         cl.cex = 1.2             
+
+
+)
+
+```
+## interpretation
+
+According to the results  the Phone and SocialNetworks are strongly positively correlated then we supposse that students who use phone a lot also use social networks a lot.
+
+
+## Step 8 –  Principal Component Analysis (PCA)
+
+PCA reduces dimensions and finds main axes.
+
+```{r}
+# Realisons l'ACP
+res.pca <- PCA(scale_center_dataset, graph =FALSE)
+
+print(res.pca)
+```
+### Step: choice of principal components
+
+### 1)Eigenvalues
+Eigenvalues show how much variance (information) each principal component explains.
+
+```{r}
+eig.val=get_eigenvalue(res.pca)
+eig.val
+
+```
+
+```{r}
+eig_arrondi <- round(eig.val, 2)
+print(eig_arrondi)
+```
+
+## How to choose the number of axes?:
+
+## Method 1 : Kaiser rule (eigenvalue > 1
+keep Dim1 and Dim2 (eigenvalue > 1).
+
+## methode 2 : Elbow rule
+
+look at the graph of eigenvalues and stop at the “bend”.
+
+```{r}
+barplot(eig.val[, 2], names.arg=1:nrow(eig.val), 
+       main = "Pourcentage de la variance expliquée par chaque composante",
+       xlab = "Composantes principales",
+       ylab = "Pourcentage de variance expliquée",
+       col ="steelblue")
+# 
+lines(x = 1:nrow(eig.val), eig.val[, 2], 
+      type="b", pch=19, col = "red")
+```
+
+
+```{r}
+fviz_eig(res.pca , addlabels = TRUE)
+```
+
+### methode3:Cumulative variance: keep enough components to explain 70–80% of total variance.
+
+Find the number of dimensions needed to reach 75% (defined threshold).
+Dim.1 + Dim.2 = 57.88% (not enough)
+Dim.1 + Dim.2 + Dim.3 = 76.68% (threshold reached)
+ 
+## interpreattion :
+So we keep 2 components 
+
+# Variables Analysis
+## Step 9 – Variables correlation circle
+
+here is to shows how variables are related to principal components.
+
+```{r}
+# Créeons  le graphique du cercle de corrélation
+fviz_pca_var(res.pca, 
+             col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE, 
+             title = "Cercle de Corrélation des Variables")
+```
+```{r}
+fviz_pca_var(res.pca, 
+             col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE, 
+             title = "Cercle de Corrélation des Variables")
+```
+
+
+##Step 10 – Individuals projection
+We project students on PCA axes
+
+```{r}
+fviz_pca_ind(res.pca, col.ind="cos2") +
+  scale_color_gradient2(low="blue", mid="white", high="red", midpoint=0.50)
+
+# Coordonnées des individus
+head(res.pca$ind$coord)
+
+# Cos 2 des individus
+head(res.pca$ind$cos2)
+#Contribution des individus
+head(res.pca$ind$contrib)
+
+```
+
+### Contributions  of variables on axe 1 (PC1)
+```{r}
+# Contributions of variables to PC1"
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 3)
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)
+```
+
+
+
+```{r}
+# Cosinus carré des variables sur la première composante principale (PC1)
+fviz_cos2(res.pca, choice = "var", axes = 1, top = 10) +
+  ggtitle("Qualité de la représentation des variables sur la PC1 (cos²)")
+
+# Cosinus carré des variables sur la deuxième composante principale (PC2)
+fviz_cos2(res.pca, choice = "var", axes = 2, top = 10) +
+  ggtitle("Qualité de la représentation des variables sur la PC2 (cos²)")
+```
+
+```{r}
+fviz_pca_ind(res.pca,  col.ind="cos2") +
+scale_color_gradient2(low="blue", mid="white", 
+                      high="red", midpoint=0.50)+
+  theme_minimal()
+```
+
+```{r}
+# Filtrer les individus avec cos² > 50%
+ind_cos2 <- apply(res.pca$ind$cos2, 1, max) > 0.5
+
+# Filtrer les variables avec cos² > 50%
+var_cos2 <- apply(res.pca$var$cos2, 1, max) > 0.5
+
+#  combiné des individus et des variables
+fviz_pca_biplot(res.pca,
+                select.ind = list(cos2 = 0.5), 
+                select.var = list(cos2 = 0.5), 
+                repel = TRUE,                  
+                title = "Biplot of Individuals and Variables (cos² > 50%)",
+                col.ind = "blue",             
+                col.var = "red")              
+
+```
+
+
+
+## PARTIE II Regression analysis
+
+## Question 1 a)
+
+## Create dummy variables
+We want to study students with very low or very high Instagram ratios
+
+```{r}
+dataset$LowInstragram <- ifelse(dataset$InstagramRatio < 0.5, 1, 0)
+dataset$HighInstragram <- ifelse(dataset$InstagramRatio > 2, 1, 0)
+
+head(dataset)
+```
+
+
+
+## Question 2 
+We would like to investigate the smartphone addiction of AIMS students. Do a multiple 
+regression with 'Phone' as dependent variable (Y) and the following independent 
+(predictors) variables: 'SocialNetworks', 'Happiness', 'Walk', 'LowInstagram', and 
+'HighInstagram'
+
+Question 3) Is the regression model in 2) useful in predicting 'Phone' time?.
+
+### Multiple regression
+
+We want to see which variables explain phone time.
+
+```{r}
+reg1=lm(Phone~SocialNetworks+Happiness+Walk+InstagramRatio+LowInstragram+HighInstragram,dataset)
+summary(reg1)
+```
+
+According on this table we see the p-value SocialNetworks is significate its means that there is correlation between phone and SocialNetworks and Adjusted R-squared is  **0.527**.
+
+In our case, it can be seen that p-value of the F-statistic is < 2.2e-16, which is highly significant. This means that, at least, one of the predictor variables is significantly related to the outcome variable.
+
+
+### Question 3) Is the regression model in 2) useful in predicting 'Phone' time?.
+
+
+### 4) In the regression of 2), does 'SocialNetworks' significantly influence 'Phone'?
+
+Yes, because when ‘SocilaNetworks’ increases by one unit, the number of minutes an AIMS student spends
+watching the screen of his/her phone per day increases by 0.9 units.
+
+## 5) Does ‘Happiness’ help reduce the time AIM students spend on their phone?
+
+Yes, because The time AIM students spend on their phone, ‘Phone’ decreases by 7.3 units when ‘Happiness’
+increases by one unit.
+
+##6)Prediction for student A
+
+```{r}
+library(tibble)
+
+# Create new observation with all predictors
+baseA <- tibble(
+  SocialNetworks = 120,
+  Happiness = 4,
+  Walk = 15,
+  InstagramRatio = 2.1
+)
+
+# Add dummy variables
+baseA$LowInstragram <- ifelse(baseA$InstagramRatio < 0.5, 1, 0)
+baseA$HighInstragram <- ifelse(baseA$InstagramRatio > 2, 1, 0)
+
+# Predict Phone time
+predict(reg1, newdata = baseA)
+
+```
+
+
+
