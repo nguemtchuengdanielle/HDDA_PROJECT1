@@ -1,23 +1,8 @@
 ---
-title: "Project: High Dimension Exam HDDA"
+title: "Project_Group1: High Dimension HDDA"
 output:
   html_document:
-    df_print: paged
-  colortheme: dolphin
-  df_print: kable
-  fonttheme: structurebold
-  beamer_presentation:
-    colortheme: beaver
-    incremental: yes
-    keep_tex: yes
-    theme: Montpellier
-  ioslides_presentation: default
-  keep_tex: yes
-  pdf_document: default
-  slidy_presentation: default
-  smaller: yes
-  theme: AnnArbor
-  widescreen: yes
+  
 ---
 
 ## 1) Introduction
@@ -69,7 +54,7 @@ str(dataset)
 summary(dataset)
 ```
 **Interprétation:**
--The dataset containt only the quantitive variable
+-The dataset of QIMS students  containt only the quantitive variable and 369 individuals, 5 variables
 
 - **Phone** :Most students use phone between 10 and 180 minutes. One extreme value = 1440 minutes (24h).
 
@@ -139,7 +124,7 @@ par(mfrow = c(1,1))
 
 ```
 # Interpretation:
-We see outliers in Phone and InstagramRatio.
+Phone and InstagramRatio show strong outliers, reflecting extreme behaviors.
 
 
 ## Step 6 – Center and reduce data
@@ -174,8 +159,7 @@ corrplot(matrice_correlation,
          tl.col = "black",        
          tl.srt = 45,             
          addCoef.col = "black",   
-         number.cex = 0.8,        
-         addCoefasPercent = TRUE, 
+         number.cex = 0.8,  
          cl.pos = "r",            
          cl.cex = 1.2             
 
@@ -213,6 +197,9 @@ eig.val
 eig_arrondi <- round(eig.val, 2)
 print(eig_arrondi)
 ```
+#interpretation : 
+
+Dim.1 explains 35% of variance, Dim.2 23%. The first two dimensions already summarize 58% of student behaviors.
 
 ## How to choose the number of axes?:
 
@@ -222,17 +209,6 @@ keep Dim1 and Dim2 (eigenvalue > 1).
 ## methode 2 : Elbow rule
 
 look at the graph of eigenvalues and stop at the “bend”.
-
-```{r}
-barplot(eig.val[, 2], names.arg=1:nrow(eig.val), 
-       main = "Pourcentage de la variance expliquée par chaque composante",
-       xlab = "Composantes principales",
-       ylab = "Pourcentage de variance expliquée",
-       col ="steelblue")
-# 
-lines(x = 1:nrow(eig.val), eig.val[, 2], 
-      type="b", pch=19, col = "red")
-```
 
 
 ```{r}
@@ -248,7 +224,8 @@ Dim.1 + Dim.2 + Dim.3 = 76.68% (threshold reached)
 ## interpreattion :
 So we keep 2 components 
 
-# Variables Analysis
+
+#  Variables Analysis
 ## Step 9 – Variables correlation circle
 
 here is to shows how variables are related to principal components.
@@ -259,8 +236,17 @@ fviz_pca_var(res.pca,
              col.var = "cos2",
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
              repel = TRUE, 
-             title = "Cercle de Corrélation des Variables")
+             title = "Corrélation  circle of Variables")
 ```
+
+
+1) Axe Dim1 (35 % de variance)
+he arrows Phone and SocialNetworks point strongly to the right. This means these two variables are highly correlated and explain most of the students’ digital behavior.
+2) Axe Dim2 (23 % de variance)
+
+The arrows Happiness and Walk go upwards. This shows they are linked together and define another axis: well-being and physical activity.
+
+
 ```{r}
 fviz_pca_var(res.pca, 
              col.var = "contrib",
@@ -269,6 +255,11 @@ fviz_pca_var(res.pca,
              title = "Cercle de Corrélation des Variables")
 ```
 
+# interpretation 
+
+# - PC1 (Dim 1) explains about 35% of the variance.  
+# - 'Phone' and 'SocialNetworks' are very close and positively correlated with axis 1.  
+# - This means that screen time is mainly linked to the use of social networks.  
 
 ##Step 10 – Individuals projection
 We project students on PCA axes
@@ -307,6 +298,9 @@ fviz_cos2(res.pca, choice = "var", axes = 2, top = 10) +
   ggtitle("Qualité de la représentation des variables sur la PC2 (cos²)")
 ```
 
+We show variables with cos² > 0.5 to see which are well represented by the axes. This means they are close to the circle and explained by PCA. In real life, this shows that Phone and SocialNetworks are the best indicators of digital behavior of QIMS students.
+
+
 ```{r}
 fviz_pca_ind(res.pca,  col.ind="cos2") +
 scale_color_gradient2(low="blue", mid="white", 
@@ -333,7 +327,6 @@ fviz_pca_biplot(res.pca,
 ```
 
 
-
 ## PARTIE II Regression analysis
 
 ## Question 1 a)
@@ -342,70 +335,209 @@ fviz_pca_biplot(res.pca,
 We want to study students with very low or very high Instagram ratios
 
 ```{r}
-dataset$LowInstragram <- ifelse(dataset$InstagramRatio < 0.5, 1, 0)
-dataset$HighInstragram <- ifelse(dataset$InstagramRatio > 2, 1, 0)
-
+# 1) Build the following variables and add them to the dataset
+dataset$LowInstagram <- ifelse(dataset$InstagramRatio < 0.5, 1, 0) 
+dataset$HighInstagram <- ifelse(dataset$InstagramRatio > 2, 1, 0)  
 head(dataset)
 ```
 
-
-
-## Question 2 
-We would like to investigate the smartphone addiction of AIMS students. Do a multiple 
-regression with 'Phone' as dependent variable (Y) and the following independent 
-(predictors) variables: 'SocialNetworks', 'Happiness', 'Walk', 'LowInstagram', and 
-'HighInstagram'
-
-Question 3) Is the regression model in 2) useful in predicting 'Phone' time?.
-
-### Multiple regression
-
-We want to see which variables explain phone time.
-
 ```{r}
-reg1=lm(Phone~SocialNetworks+Happiness+Walk+InstagramRatio+LowInstragram+HighInstragram,dataset)
-summary(reg1)
+# Check structure and frequency 
+str(dataset) 
+table(dataset$LowInstagram) 
+table(dataset$HighInstagram)
 ```
+#interpretation:
 
-According on this table we see the p-value SocialNetworks is significate its means that there is correlation between phone and SocialNetworks and Adjusted R-squared is  **0.527**.
+These variables distinguish two student profiles: 
+# - LowInstagram = 1: students who follow many accounts but have few followers.This shows a "consumer" profile, not influential. 
+# - HighInstagram = 1: students with many followers compared to following.  This shows an "influencer" or "popular" profile.
 
-In our case, it can be seen that p-value of the F-statistic is < 2.2e-16, which is highly significant. This means that, at least, one of the predictor variables is significantly related to the outcome variable.
-
-
-### Question 3) Is the regression model in 2) useful in predicting 'Phone' time?.
-
-
-### 4) In the regression of 2), does 'SocialNetworks' significantly influence 'Phone'?
-
-Yes, because when ‘SocilaNetworks’ increases by one unit, the number of minutes an AIMS student spends
-watching the screen of his/her phone per day increases by 0.9 units.
-
-## 5) Does ‘Happiness’ help reduce the time AIM students spend on their phone?
-
-Yes, because The time AIM students spend on their phone, ‘Phone’ decreases by 7.3 units when ‘Happiness’
-increases by one unit.
-
-##6)Prediction for student A
 
 ```{r}
-library(tibble)
+# 2) Multiple linear regression
+model_reg <- lm(Phone ~ SocialNetworks + Happiness + Walk + LowInstagram + HighInstagram, data = dataset)
+summary(model_reg)
 
-# Create new observation with all predictors
-baseA <- tibble(
-  SocialNetworks = 120,
-  Happiness = 4,
-  Walk = 15,
-  InstagramRatio = 2.1
-)
 
-# Add dummy variables
-baseA$LowInstragram <- ifelse(baseA$InstagramRatio < 0.5, 1, 0)
-baseA$HighInstragram <- ifelse(baseA$InstagramRatio > 2, 1, 0)
+```
+## interpretation:
 
-# Predict Phone time
-predict(reg1, newdata = baseA)
+The global test shows the model is very useful to explain phone time. The strongest factor is SocialNetworks (very significant): more social networks then more phone time. Happiness is also significant but negative: happier students use their phone less, showing a protective effect. Walk is not significant: physical activity does not clearly reduce phone time. LowInstagram and HighInstagram show small trends (p-values near 0.05), meaning Instagram profile may play a role, but the effect is not statistically confirmed.
+
+The regression model is **statistically strong**.
+
+Global F-test: p-value = 4.28e-58  it means that the model is highly significant and useful.
+
+Adjusted R² = 0.529 that the model explains about 53% of the variance in phone time.
+
+SocialNetworks: positive effect (+0.91, p < 0.001) each extra minute on social networks adds almost one minute of phone use.
+
+Happiness: negative effect (-7.39, p = 0.013) and higher happiness scores reduce phone time.
+
+# 3) ANOVA – Usefulness of the model
+
+```{r}
+anova_result <- anova(model_reg)
+print(anova_result)
+
+# Global F-test
+f_stat <- summary(model_reg)$fstatistic
+p_value_global <- pf(f_stat[1], f_stat[2], f_stat[3], lower.tail = FALSE)
+cat("\nGlobal F-test p-value:", p_value_global, "\n")
 
 ```
 
+# 4) Significance of SocialNetworks
 
+```{r}
+coef_summary <- summary(model_reg)$coefficients
+p_value_social <- coef_summary["SocialNetworks", "Pr(>|t|)"]
+cat("P-value for SocialNetworks:", p_value_social, "\n")
+
+
+```
+# interpretation :
+SocialNetworks is highly significant (p-value < 0.05).
+# This confirms that social networks time is a major factor of smartphone addiction.
+# In real life, students spending time on Instagram, Facebook or WhatsApp
+# also increase their overall screen 
+
+# 5) Impact of Happiness
+```{r}
+
+coef_happiness <- coef_summary["Happiness", "Estimate"]
+p_value_happiness <- coef_summary["Happiness", "Pr(>|t|)"]
+
+cat("Coefficient of Happiness:", coef_happiness, "\n")
+cat("P-value for Happiness:", p_value_happiness, "\n")
+
+
+```
+#interpretation:
+
+Happiness has a negative and significant coefficient.
+This means that happier students spend less time on their phone.
+student satisfied with social or academic life is less dependent on the screen.
+
+
+# 6) Predictions for Students A and B
+```{r}
+
+student_A <- data.frame(SocialNetworks = 120, Happiness = 4, Walk = 15, LowInstagram = 0, HighInstagram = 1)
+student_B <- data.frame(SocialNetworks = 120, Happiness = 4, Walk = 15, LowInstagram = 1, HighInstagram = 0)
+
+Phone_A <- predict(model_reg, newdata = student_A)
+Phone_B <- predict(model_reg, newdata = student_B)
+
+cat("Phone_student(A) - InstagramRatio=2.1:", Phone_A, "minutes\n")
+cat("Phone_student(B) - InstagramRatio=0.4:", Phone_B, "minutes\n")
+
+# Interpretation:
+# FR : Les étudiants A et B ont les mêmes comportements (réseaux sociaux, bonheur, marche),
+# mais leurs temps prédits diffèrent à cause du ratio Instagram.
+# Cela montre que la popularité sur Instagram influence aussi l’addiction au smartphone.
+#
+# EN : Students A and B have the same behaviors (social networks, happiness, walking),
+# but their predicted phone times differ because of Instagram ratio.
+# This shows that Instagram popularity also influences smartphone addiction.
+
+```
+#interpreation :
+Students A and B have the same behaviors (social networks, happiness, walking), # but their predicted phone times differ because of Instagram ratio. 
+This shows that Instagram popularity also influences smartphone addiction.
+ the Instagram popularity changes smartphone use: popular students use their phone less, while less popular students use it more.
+ 
+ 
+# Question 7: Backward stepwise regression
+
+```{r}
+
+cat("\n initial model :\n")
+print(summary(model_reg)$coefficients)
+
+# Étape par étape - suppression du prédicteur le moins significatif
+current_model <- model_reg
+step_count <- 1
+
+repeat {
+  coef_table <- summary(current_model)$coefficients
+  # Exclure l'intercept
+  predictors <- rownames(coef_table)[-1]
+  p_values <- coef_table[predictors, "Pr(>|t|)"]
+  
+  # Trouver le prédicteur avec la plus grande p-value
+  max_p_value <- max(p_values)
+  
+  # Si tous les prédicteurs sont significatifs, on s'arrete
+  if(max_p_value < 0.05) {
+    cat("\nTous les prédicteurs restants sont significatifs au seuil de 5%\n")
+    break
+  }
+  
+  # Supprimer le prédicteur le moins significatif
+  to_remove <- names(which.max(p_values))
+  cat("\n Étape", step_count, " \n")
+  cat("Suppression de:", to_remove, "(p-value =", max_p_value, ")\n")
+  
+  # Mettre à jour la formule
+  formula_str <- as.character(formula(current_model))
+  new_formula <- as.formula(paste(formula_str[2], "~", 
+                                  paste(predictors[predictors != to_remove], 
+                                        collapse = " + ")))
+  
+  current_model <- lm(new_formula, data = dataset)
+  print(summary(current_model)$coefficients)
+  
+  step_count <- step_count + 1
+}
+
+# Modèle final après backward stepwise
+model_backward <- current_model
+cat("\n MODÈLE FINAL AFTER  BACKWARD STEPWISE \n")
+summary(model_backward)
+
+```
+
+#interpretation :
+
+The backward model keeps only significant variables: SocialNetworks, Happiness, and HighInstagram. Smartphone use in AIMS students is mainly explained by social networks (increase phone time), reduced by happiness (protective effect), and influenced by Instagram popularity (highly followed students spend less time on phone)
+
+```{r}
+# 8) Compare models
+cat("Adjusted R² (full model):", summary(model_reg)$adj.r.squared, "\n")
+cat("Adjusted R² (backward model):", summary(model_backward)$adj.r.squared, "\n")
+
+```
+
+# Interpretation:
+The difference between the two models is very small (0.5288 vs 0.5275). This means removing non-significant variables did not reduce the model’s explanatory power. The backward model is simpler (fewer variables) but still almost as strong as the full model.
+
+# 9 & 10) Predictions for new students
+```{r}
+
+new_student_9 <- data.frame(SocialNetworks = 30, Happiness = 8, Walk = 2, LowInstagram = 0, HighInstagram = 1)
+prediction_9 <- predict(model_backward, newdata = new_student_9)
+
+new_student_10 <- data.frame(SocialNetworks = 30, Happiness = 8, Walk = 2, LowInstagram = 1, HighInstagram = 0)
+prediction_10 <- predict(model_backward, newdata = new_student_10)
+
+cat("Predicted Phone time (InstagramRatio=2.1):", prediction_9, "minutes\n")
+cat("Predicted Phone time (InstagramRatio=0.4):", prediction_10, "minutes\n")
+
+
+```
+
+# Interpretation:
+ The model predicts that two students with the same habits (social networks, happiness, walking)
+will have different screen times depending on their Instagram profile.
+This illustrates the importance of social networks in real life of QIMS students.
+
+
+#CONCLUSION 
+
+Regression analysis shows that: 
+- Social networks strongly increase phone time. 
+- Happiness reduces this time (protective effect). 
+- Instagram ratio plays an important social role. The backward model is the most reliable because it keeps only significant variables. This analysis
 
